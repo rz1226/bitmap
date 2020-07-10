@@ -6,45 +6,46 @@ import (
 	"time"
 )
 
+//为什么属性公开，因为要用gob存到数据库
 type BitMap2 struct {
-	m        *sync.Mutex
-	byteLine []byte
+	M        *sync.Mutex
+	ByteLine []byte
 }
 
 func NewBitMap2(dataInit []byte) *BitMap2 {
 	bm := &BitMap2{}
-	bm.byteLine = dataInit
-	bm.m = new(sync.Mutex)
+	bm.ByteLine = dataInit
+	bm.M = new(sync.Mutex)
 	return bm
 }
 
 func (this *BitMap2) Bytes() []byte {
-	return this.byteLine
+	return this.ByteLine
 }
 func (this *BitMap2) String() string {
-	return string(this.byteLine)
+	return string(this.ByteLine)
 }
 
 //加长，如果已经够长了，什么都不操作,否则全部补充零
 //注意该长度是指byte的数量长度,不是位的长度
 func (this *BitMap2) padWithZero(lenth int) {
-	clen := len(this.byteLine)
+	clen := len(this.ByteLine)
 	if clen < lenth {
 		newBiggerByteLine := make([]byte, lenth)
-		copy(newBiggerByteLine, this.byteLine)
-		this.byteLine = newBiggerByteLine
+		copy(newBiggerByteLine, this.ByteLine)
+		this.ByteLine = newBiggerByteLine
 	}
 }
 
 //对外接口
 func (this *BitMap2) Get(position int) bool {
-	this.m.Lock()
-	defer this.m.Unlock()
+	this.M.Lock()
+	defer this.M.Unlock()
 	pos := position / 8
-	if pos > len(this.byteLine)-1 {
+	if pos > len(this.ByteLine)-1 {
 		return false
 	}
-	value := this.byteLine[pos]
+	value := this.ByteLine[pos]
 	pos2 := position % 8
 	newValue := getSingleBytePositionValue(value, pos2)
 	return newValue
@@ -60,40 +61,41 @@ func (this *BitMap2) SetFalse(position int) {
 }
 
 func (this *BitMap2) setPostion(position int, val bool) {
-	this.m.Lock()
-	defer this.m.Unlock()
+	this.M.Lock()
+	defer this.M.Unlock()
 	whichByte := position / 8
-	oriLen := len(this.byteLine)
+	oriLen := len(this.ByteLine)
 	if whichByte > oriLen-1 {
 		//多增加的部分为了减少pad的次数，每次pad要拷贝数据性能很低
 		this.padWithZero(whichByte + 10 + oriLen/5)
 	}
-	value := this.byteLine[whichByte]
+	value := this.ByteLine[whichByte]
 	mod := position % 8
 	newValue := setSingleBytePositionValue(value, mod, val)
 	this.update(whichByte, newValue)
 }
 func (this *BitMap2) Len() int {
-	return len(this.byteLine) * 8
+
+	return len(this.ByteLine) * 8
 }
 
 //update
 func (this *BitMap2) update(pos int, val byte) {
-	this.byteLine[pos] = val
+	this.ByteLine[pos] = val
 }
 
 func minLen(t, t2 *BitMap2) int {
-	if len(t.byteLine) <= len(t2.byteLine) {
-		return len(t.byteLine)
+	if len(t.ByteLine) <= len(t2.ByteLine) {
+		return len(t.ByteLine)
 	}
-	return len(t2.byteLine)
+	return len(t2.ByteLine)
 }
 
 func maxLen(t, t2 *BitMap2) int {
-	if len(t.byteLine) >= len(t2.byteLine) {
-		return len(t.byteLine)
+	if len(t.ByteLine) >= len(t2.ByteLine) {
+		return len(t.ByteLine)
 	}
-	return len(t2.byteLine)
+	return len(t2.ByteLine)
 }
 
 func (b *BitMap2) Or(b2 *BitMap2) *BitMap2 {
@@ -101,9 +103,9 @@ func (b *BitMap2) Or(b2 *BitMap2) *BitMap2 {
 	b.padWithZero(len)
 	b2.padWithZero(len)
 	bm := &BitMap2{}
-	bm.byteLine = make([]byte, len)
+	bm.ByteLine = make([]byte, len)
 	for i := 0; i < len; i++ {
-		bm.byteLine[i] = b.byteLine[i] | b2.byteLine[i]
+		bm.ByteLine[i] = b.ByteLine[i] | b2.ByteLine[i]
 	}
 	return bm
 }
@@ -111,9 +113,9 @@ func (b *BitMap2) Or(b2 *BitMap2) *BitMap2 {
 func (b *BitMap2) And(b2 *BitMap2) *BitMap2 {
 	len := minLen(b, b2)
 	bm := &BitMap2{}
-	bm.byteLine = make([]byte, len)
+	bm.ByteLine = make([]byte, len)
 	for i := 0; i < len; i++ {
-		bm.byteLine[i] = b.byteLine[i] & b2.byteLine[i]
+		bm.ByteLine[i] = b.ByteLine[i] & b2.ByteLine[i]
 	}
 	return bm
 }

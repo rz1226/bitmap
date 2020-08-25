@@ -8,9 +8,9 @@ import (
 type BitMap struct {
 	Name       string
 	Key        string
-	SetCount   int32
+	SetCount   int32 //set 为  true的 个数
 	Data       *BitMap2
-	LastUpTime int64
+	LastUpTime int64 //秒
 }
 
 func NewBitMap(key string, name string) *BitMap {
